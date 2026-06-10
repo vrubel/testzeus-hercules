@@ -13,7 +13,6 @@ import autogen  # type: ignore
 import nest_asyncio  # type: ignore
 import openai
 from autogen import AssistantAgent, Cache
-from autogen.agentchat.contrib.retrieve_user_proxy_agent import RetrieveUserProxyAgent
 from testzeus_hercules.config import get_global_conf
 from testzeus_hercules.core.agents.api_nav_agent import ApiNavAgent
 from testzeus_hercules.core.agents.browser_nav_agent import BrowserNavAgent
@@ -24,7 +23,6 @@ from testzeus_hercules.core.agents.sec_nav_agent import SecNavAgent
 from testzeus_hercules.core.agents.sql_nav_agent import SqlNavAgent
 from testzeus_hercules.core.agents.time_keeper_nav_agent import TimeKeeperNavAgent
 from testzeus_hercules.core.extra_tools import *
-from testzeus_hercules.core.memory.dynamic_ltm import DynamicLTM
 from testzeus_hercules.core.memory.state_handler import store_run_data
 from testzeus_hercules.core.post_process_responses import (
     final_reply_callback_planner_agent as notify_planner_messages,  # type: ignore
@@ -84,7 +82,7 @@ class SimpleHercules:
                 UserProxyAgent_SequentialFunctionExecution,
                 autogen.ConversableAgent,
                 AssistantAgent,
-                RetrieveUserProxyAgent,
+                "RetrieveUserProxyAgent",
             ],
         ] = {}
         self._memory_docs_path: Optional[str] = None
@@ -107,7 +105,7 @@ class SimpleHercules:
         self.stake_id = stake_id
         self.chat_logs_dir: str = get_global_conf().get_source_log_folder_path(self.stake_id)
         self.save_chat_logs_to_files = save_chat_logs_to_files
-        self.memory: Optional[DynamicLTM] = None
+        self.memory: Optional["DynamicLTM"] = None
 
     @classmethod
     async def create(
@@ -955,6 +953,7 @@ class SimpleHercules:
 
         # Initialize memory system
         namespace = f"{self.stake_id}_{config.timestamp}"
+        from testzeus_hercules.core.memory.dynamic_ltm import DynamicLTM
         self.memory = DynamicLTM(namespace=namespace, llm_config=llm_config)
 
         # Get the agents from memory system

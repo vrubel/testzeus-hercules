@@ -16,8 +16,6 @@ from testzeus_hercules.core.memory.static_data_loader import (  # load_data,; li
     get_test_data_file_paths,
 )
 from testzeus_hercules.utils.logger import logger
-from unstructured.documents.elements import NarrativeText, Text, Title
-from unstructured.partition.auto import partition
 
 
 def suppress_prints(func):
@@ -215,6 +213,8 @@ I work strictly with data that has been explicitly stored in my memory.""",
     def _process_content(self, content: str, is_text: bool = True) -> str:
         """Process content using unstructured.io based on content type."""
         try:
+            from unstructured.documents.elements import NarrativeText, Text, Title
+            from unstructured.partition.auto import partition
             if is_text:
                 # For text content, create a temporary file and process it
                 temp_file = os.path.join(tempfile.gettempdir(), f"temp_{uuid.uuid4()}.txt")

@@ -6,7 +6,6 @@ from typing import Any, Dict, Optional
 import autogen  # type: ignore
 from autogen import ConversableAgent  # type: ignore
 from testzeus_hercules.config import get_global_conf
-from testzeus_hercules.core.memory.dynamic_ltm import DynamicLTM
 from testzeus_hercules.core.memory.static_ltm import get_user_ltm
 from testzeus_hercules.core.post_process_responses import (
     final_reply_callback_planner_agent as print_message_as_planner,  # type: ignore
@@ -293,9 +292,13 @@ Available Test Data: $basic_test_information
             config: Optional[Dict[str, Any]] = None,
         ) -> tuple[bool, Any]:
             if messages:
+                _use_ltm = get_global_conf().should_use_dynamic_ltm()
+                if _use_ltm:
+                    from testzeus_hercules.core.memory.dynamic_ltm import DynamicLTM
                 for message_list in messages:
                     for key, message in message_list.items():
-                        DynamicLTM().save_content(message)
+                        if _use_ltm:
+                            DynamicLTM().save_content(message)
                         print_message_as_planner(message=message)
             return False, None
 
