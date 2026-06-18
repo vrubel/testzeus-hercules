@@ -1,5 +1,7 @@
 import httpx
 
+from testzeus_hercules.lean_lockdown import block_external_egress
+
 
 class GeoLocationSDK:
     """
@@ -16,6 +18,9 @@ class GeoLocationSDK:
         """
         if provider not in ["google", "maps_co"]:
             raise ValueError("Provider must be either 'google' or 'maps_co'.")
+
+        # Lean build: this SDK exists only to call external maps APIs — block it fail-closed.
+        block_external_egress(f"using the {provider} geolocation API")
 
         self.provider = provider
         self.api_key = api_key

@@ -10,6 +10,7 @@ from typing import Annotated, Any, List, Optional, Tuple
 import httpx
 from inflection import parameterize
 from testzeus_hercules.config import get_global_conf
+from testzeus_hercules.lean_lockdown import block_external_egress
 from testzeus_hercules.core.tools.tool_registry import sec_logger as file_logger
 from testzeus_hercules.core.tools.tool_registry import tool
 from testzeus_hercules.utils.logger import logger
@@ -77,6 +78,9 @@ async def ensure_nuclei_installed() -> None:
         file_logger("Nuclei binary already exists.")
         return
 
+    # Lean build: never pull the nuclei binary from github releases. Use a pre-placed binary if
+    # present; otherwise fail loud (unless the operator opts into external access for this run).
+    block_external_egress("downloading the nuclei binary", NUCLEI_DOWNLOAD_URL_TEMPLATE)
     logger.info("Nuclei binary not found. Downloading...")
     file_logger("Nuclei binary not found. Downloading...")
     CACHE_DIR.mkdir(parents=True, exist_ok=True)

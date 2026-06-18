@@ -5,6 +5,7 @@ from typing import Annotated, Any, Dict, List
 
 from playwright.async_api import Page
 from testzeus_hercules.config import get_global_conf
+from testzeus_hercules.lean_lockdown import block_external_egress
 from testzeus_hercules.core.playwright_manager import PlaywrightManager
 from testzeus_hercules.core.tools.tool_registry import (
     accessibility_logger,
@@ -42,6 +43,8 @@ async def test_page_accessibility(
 
         await browser_manager.wait_for_load_state_if_enabled(page=page, state="domcontentloaded")
 
+        # Lean build: the audit pulls axe-core from a CDN inside the page — block it fail-closed.
+        block_external_egress("fetching the axe-core script", AXE_SCRIPT_URL)
         # Inject the Axe-core script
         response = await page.evaluate(
             f"""

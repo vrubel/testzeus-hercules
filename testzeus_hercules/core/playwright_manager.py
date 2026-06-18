@@ -20,6 +20,7 @@ from playwright.async_api import Error as PlaywrightError  # for exception handl
 from playwright.async_api import Page, Playwright
 from playwright.async_api import async_playwright as playwright
 from testzeus_hercules.config import get_global_conf
+from testzeus_hercules.lean_lockdown import block_external_egress
 from testzeus_hercules.core.browser_logger import get_browser_logger
 from testzeus_hercules.core.notification_manager import NotificationManager
 from testzeus_hercules.utils.dom_mutation_observer import (
@@ -362,6 +363,9 @@ class PlaywrightManager:
             await asyncio.to_thread(os.makedirs, extension_dir)
 
         if not os.path.exists(extension_file_path):
+            # Lean build: never fetch the uBlock binary from github/mozilla. Use a pre-cached copy
+            # if one exists; otherwise fail loud (unless the operator opts into external access).
+            block_external_egress("downloading the uBlock extension", extension_url)
             logger.info(f"Downloading extension from {extension_url}")
             async with httpx.AsyncClient(follow_redirects=True) as client:
                 response = await client.get(extension_url)
@@ -525,8 +529,9 @@ class PlaywrightManager:
 
             # Only navigate if explicitly configured to do so
             if self.cdp_navigate_on_connect:
-                logger.info("Navigating to Google as specified in configuration.")
-                await page.goto("https://www.google.com", timeout=120000)
+                # Lean build: do NOT reach out to google.com on connect — start on a blank page.
+                logger.info("Navigating to about:blank on connect (lean build: no external warmup).")
+                await page.goto("about:blank")
             else:
                 logger.info("Skipping navigation on CDP connection as configured.")
 

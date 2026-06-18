@@ -93,6 +93,11 @@ class DynamicLTM:
         llm_config: Optional[Dict[str, Any]] = None,
     ) -> None:
         """Initialize the DynamicLTM instance with RAG capabilities."""
+        # Lean build: dynamic LTM pulls an embedding model from HuggingFace on first use. Refuse
+        # fail-closed (the model can be staged locally and external access opted into explicitly).
+        from testzeus_hercules.lean_lockdown import block_external_egress
+
+        block_external_egress("initializing dynamic LTM (downloads an embedding model from HuggingFace)")
         self.namespace = namespace
         self.static_data_list = get_test_data_file_paths()
 

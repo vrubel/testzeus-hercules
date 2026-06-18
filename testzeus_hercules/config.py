@@ -531,6 +531,11 @@ class BaseConfigManager:
 
         # Check if Portkey is enabled
         if self._config.get("ENABLE_PORTKEY", "").lower() == "true":
+            # Lean build: Portkey reroutes ALL LLM traffic through the external portkey.ai gateway
+            # (and logs it there). Refuse fail-closed even if a key is configured.
+            from testzeus_hercules.lean_lockdown import block_external_egress
+
+            block_external_egress("routing LLM traffic through the Portkey gateway", "https://api.portkey.ai")
             portkey_api_key = self._config.get("PORTKEY_API_KEY")
             if not portkey_api_key:
                 logger.error("PORTKEY_API_KEY must be set when Portkey is enabled")
