@@ -36,6 +36,12 @@ _TELEMETRY_OFF = {
 for _k, _v in _TELEMETRY_OFF.items():
     os.environ.setdefault(_k, _v)
 
+# Lean build: the uBlock ad-blocker auto-downloads its extension from github/mozilla on browser
+# launch — which the netguard below blocks, so the browser would fail to start out of the box.
+# Default it OFF; operators who pre-stage the extension (or set HERCULES_ALLOW_EXTERNAL_DOWNLOADS=1)
+# can re-enable it with ENABLE_UBLOCK_EXTENSION=true.
+os.environ.setdefault("ENABLE_UBLOCK_EXTENSION", "false")
+
 
 # --- 2. fail-closed guard for feature tools that fetch from the internet ---------------------
 ALLOW_FLAG = "HERCULES_ALLOW_EXTERNAL_DOWNLOADS"
