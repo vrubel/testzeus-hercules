@@ -153,13 +153,20 @@ Ok 'install composition verified - Python packages only'
 
 # --- 6. actual install -----------------------------------------------------------------------
 Step 'Installing into the venv (Python packages only, --prefer-binary)'
-# Stream to console AND file (Tee), do NOT swallow into the log only. With `*> $PIP_LOG` plus the
-# script-wide $ErrorActionPreference='Stop', when pip writes to stderr PowerShell raises a terminating
-# NativeCommandError ON THIS LINE - it never reaches the failure handler below, so the user sees a bare
-# "ERROR: Exception:" with no cause. `2>&1 | Tee-Object` merges stderr into the pipeline (consumed by
-# Tee, so no premature throw), shows the live pip output, and still mirrors it to $PIP_LOG.
-& $VPY -m pip install --prefer-binary $REPO 2>&1 | Tee-Object -FilePath $PIP_LOG
-if ($LASTEXITCODE -ne 0) { Fail "install failed (full pip output is above and in $PIP_LOG)" }
+# Stream pip output to console AND file (Tee), do NOT swallow it into the log only. Two things conspire
+# to hide the real error otherwise: `*> $PIP_LOG` sends everything to a file, AND the script-wide
+# $ErrorActionPreference='Stop' makes PowerShell turn the FIRST stderr line pip emits into a terminating
+# NativeCommandError - on THIS line, before any handler runs - so the user sees a bare "ERROR: Exception:"
+# with no cause. Even `2>&1 | Tee-Object` is not enough under 'Stop' (PS 5.1 still trips on native stderr).
+# So relax error handling to 'Continue' JUST around pip: the FULL output (incl. the real traceback)
+# streams live to the console and is mirrored to $PIP_LOG; we capture the exit code and restore after.
+# ForEach-Object { "$_" } casts each stderr ErrorRecord to a plain string so the host prints it as
+# normal text (otherwise every stderr line - pip progress bars included - renders as a red error block).
+$prevEAP = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
+& $VPY -m pip install --prefer-binary $REPO 2>&1 | ForEach-Object { "$_" } | Tee-Object -FilePath $PIP_LOG
+$pipRc = $LASTEXITCODE
+$ErrorActionPreference = $prevEAP
+if ($pipRc -ne 0) { Fail "install failed (full pip output is above and in $PIP_LOG)" }
 $built = Select-String -Path $PIP_LOG -Pattern 'Building wheel for (\S+)' | ForEach-Object { $_.Matches[0].Groups[1].Value } | Sort-Object -Unique
 if ($built) { Info ('built from source (sdist, python): ' + ($built -join ' ')) } else { Info 'all installed as prebuilt wheels' }
 Ok 'packages installed'
