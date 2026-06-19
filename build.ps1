@@ -153,8 +153,13 @@ Ok 'install composition verified - Python packages only'
 
 # --- 6. actual install -----------------------------------------------------------------------
 Step 'Installing into the venv (Python packages only, --prefer-binary)'
-& $VPY -m pip install --prefer-binary $REPO *> $PIP_LOG
-if ($LASTEXITCODE -ne 0) { Get-Content $PIP_LOG -Tail 60 | ForEach-Object { Write-Host $_ }; Fail "install failed (see pip log above: $PIP_LOG)" }
+# Stream to console AND file (Tee), do NOT swallow into the log only. With `*> $PIP_LOG` plus the
+# script-wide $ErrorActionPreference='Stop', when pip writes to stderr PowerShell raises a terminating
+# NativeCommandError ON THIS LINE - it never reaches the failure handler below, so the user sees a bare
+# "ERROR: Exception:" with no cause. `2>&1 | Tee-Object` merges stderr into the pipeline (consumed by
+# Tee, so no premature throw), shows the live pip output, and still mirrors it to $PIP_LOG.
+& $VPY -m pip install --prefer-binary $REPO 2>&1 | Tee-Object -FilePath $PIP_LOG
+if ($LASTEXITCODE -ne 0) { Fail "install failed (full pip output is above and in $PIP_LOG)" }
 $built = Select-String -Path $PIP_LOG -Pattern 'Building wheel for (\S+)' | ForEach-Object { $_.Matches[0].Groups[1].Value } | Sort-Object -Unique
 if ($built) { Info ('built from source (sdist, python): ' + ($built -join ' ')) } else { Info 'all installed as prebuilt wheels' }
 Ok 'packages installed'
